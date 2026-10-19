@@ -1,0 +1,1328 @@
+<!DOCTYPE html>
+<html lang="ca" class="h-full bg-slate-900 text-slate-100">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monitor de Repàs i Estudi Legislatiu - Oposicions Violí A1</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Alpine.js -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        ce: '#ef4444',     
+                        lbrl: '#3b82f6',   
+                        ley39: '#eab308',  
+                        trebep: '#10b981', 
+                        estatuto: '#a855f7'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        [x-cloak] { display: none !important; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+        
+        .perspective-1000 { perspective: 1000px; }
+        .transform-style-3d { transform-style: preserve-3d; }
+        .backface-hidden { backface-visibility: hidden; }
+        .rotate-y-180 { transform: rotateY(180deg); }
+    </style>
+</head>
+<body class="h-full font-sans antialiased bg-slate-950 text-slate-100 flex flex-col overflow-hidden" 
+      x-data="canvasApp()" 
+      x-init="initApp()">
+
+    <!-- Header Principal -->
+    <header class="bg-slate-900 border-b border-slate-800 px-4 sm:px-6 py-2.5 flex-none flex flex-wrap justify-between items-center gap-3 shadow-md z-20">
+        <div class="flex items-center gap-3">
+            <div class="p-2 bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 rounded-xl">
+                <i class="fa-solid fa-graduation-cap text-xl"></i>
+            </div>
+            <div>
+                <h1 class="text-base sm:text-lg font-bold tracking-tight text-white flex items-center gap-2">
+                    Campus de Repàs i Tests Xavi Pericàs
+                    <span class="text-[11px] px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-medium">Violí A1 - Sant Cugat (OAME)</span>
+                </h1>
+                <p class="text-xs text-slate-400 hidden sm:block">Plataforma interactiva adaptada al temari i bases DOGC 9753 (Exp. 34923/2026)</p>
+            </div>
+        </div>
+
+        <!-- Navegació entre Pestanyes -->
+        <nav class="flex items-center bg-slate-950/80 p-1 rounded-xl border border-slate-800 text-xs">
+            <button @click="currentTab = 'dashboard'" :class="currentTab === 'dashboard' ? 'bg-indigo-600 text-white font-semibold shadow' : 'text-slate-400 hover:text-white'" class="px-3 py-1.5 rounded-lg transition flex items-center gap-1.5">
+                <i class="fa-solid fa-chart-pie"></i> <span class="hidden md:inline">Panell</span>
+            </button>
+            <button @click="currentTab = 'tests'" :class="currentTab === 'tests' ? 'bg-indigo-600 text-white font-semibold shadow' : 'text-slate-400 hover:text-white'" class="px-3 py-1.5 rounded-lg transition flex items-center gap-1.5">
+                <i class="fa-solid fa-list-check"></i> <span>Tests Interactius</span>
+            </button>
+            <button @click="currentTab = 'flashcards'" :class="currentTab === 'flashcards' ? 'bg-indigo-600 text-white font-semibold shadow' : 'text-slate-400 hover:text-white'" class="px-3 py-1.5 rounded-lg transition flex items-center gap-1.5">
+                <i class="fa-solid fa-clone"></i> <span>Flashcards</span>
+            </button>
+            <button @click="currentTab = 'temario'" :class="currentTab === 'temario' ? 'bg-indigo-600 text-white font-semibold shadow' : 'text-slate-400 hover:text-white'" class="px-3 py-1.5 rounded-lg transition flex items-center gap-1.5">
+                <i class="fa-solid fa-book-bookmark"></i> <span>Temari Complet</span>
+            </button>
+            <button @click="currentTab = 'assistant'" :class="currentTab === 'assistant' ? 'bg-indigo-600 text-white font-semibold shadow' : 'text-slate-400 hover:text-white'" class="px-3 py-1.5 rounded-lg transition flex items-center gap-1.5">
+                <i class="fa-solid fa-robot"></i> <span>Assistent IA</span>
+            </button>
+        </nav>
+
+        <!-- Indicadors Ràpids -->
+        <div class="flex items-center gap-2">
+            <div class="hidden lg:flex items-center gap-3 bg-slate-950/60 border border-slate-800 rounded-xl px-3 py-1 text-xs">
+                <div class="flex items-center gap-1.5">
+                    <i class="fa-solid fa-stopwatch text-amber-400"></i>
+                    <span class="text-amber-300 font-bold" x-text="daysLeftText()"></span>
+                </div>
+                <div class="h-3 w-px bg-slate-800"></div>
+                <div class="flex items-center gap-1.5">
+                    <i class="fa-solid fa-circle-check text-emerald-400"></i>
+                    <span class="text-emerald-400 font-bold" x-text="`${masteredPlazosCount()}/${plazos.length}`"></span>
+                </div>
+            </div>
+            <button @click="showBasesModal = true" class="px-2.5 py-1.5 bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 border border-amber-500/30 rounded-lg text-xs font-semibold flex items-center gap-1 transition">
+                <i class="fa-solid fa-scroll"></i> <span class="hidden sm:inline">Bases</span>
+            </button>
+            <button @click="resetToDefault()" class="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs transition" title="Restablir dades">
+                <i class="fa-solid fa-rotate-right"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- 1. PANELL GENERAL (DASHBOARD QUADRANTS) -->
+    <main class="flex-1 overflow-y-auto p-4" x-show="currentTab === 'dashboard'">
+        <!-- Filtres Globals -->
+        <div class="bg-slate-900/60 border border-slate-800 rounded-xl p-2.5 mb-4 flex flex-wrap justify-between items-center gap-3 text-xs">
+            <div class="flex items-center gap-2 overflow-x-auto">
+                <span class="text-slate-400 font-medium">Filtrar Llei:</span>
+                <button @click="filterLey = 'ALL'" :class="filterLey === 'ALL' ? 'bg-slate-200 text-slate-900 font-bold' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'" class="px-2.5 py-1 rounded-md transition">Totes</button>
+                <button @click="filterLey = 'CE'" :class="filterLey === 'CE' ? 'bg-red-500 text-white font-bold' : 'bg-red-500/10 text-red-400 hover:bg-red-500/20'" class="px-2.5 py-1 rounded-md border border-red-500/30 transition">CE 1978</button>
+                <button @click="filterLey = 'LBRL'" :class="filterLey === 'LBRL' ? 'bg-blue-500 text-white font-bold' : 'bg-blue-500/10 text-blue-400 hover:bg-blue-500/20'" class="px-2.5 py-1 rounded-md border border-blue-500/30 transition">LBRL / Catalana</button>
+                <button @click="filterLey = 'LEY39'" :class="filterLey === 'LEY39' ? 'bg-amber-500 text-white font-bold' : 'bg-amber-500/10 text-amber-400 hover:bg-amber-500/20'" class="px-2.5 py-1 rounded-md border border-amber-500/30 transition">Llei 39/40 LPACAP</button>
+                <button @click="filterLey = 'TREBEP'" :class="filterLey === 'TREBEP' ? 'bg-emerald-500 text-white font-bold' : 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20'" class="px-2.5 py-1 rounded-md border border-emerald-500/30 transition">TREBEP / Laboral</button>
+                <button @click="filterLey = 'OAME'" :class="filterLey === 'OAME' ? 'bg-purple-500 text-white font-bold' : 'bg-purple-500/10 text-purple-400 hover:bg-purple-500/20'" class="px-2.5 py-1 rounded-md border border-purple-500/30 transition">Bases OAME Violí</button>
+            </div>
+            <div class="relative w-full sm:w-64">
+                <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2 text-slate-500"></i>
+                <input type="text" x-model="searchQuery" placeholder="Cercar concepte, article o termini..." class="w-full bg-slate-950 border border-slate-800 rounded-lg pl-8 pr-3 py-1 text-xs text-slate-200 focus:outline-none focus:border-indigo-500">
+            </div>
+        </div>
+
+        <!-- Disseny 4 Quadrants -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            
+            <!-- Quadrant 1: Marc Normatiu -->
+            <section class="bg-slate-900/70 border border-slate-800 rounded-2xl p-4 flex flex-col h-[380px]">
+                <div class="flex items-center justify-between mb-3 border-b border-slate-800 pb-2">
+                    <div class="flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-indigo-500"></span>
+                        <h2 class="font-bold text-xs uppercase tracking-wider text-slate-200">1. Marc Normatiu i Normes Clau</h2>
+                    </div>
+                    <span class="text-[11px] text-slate-500" x-text="`${filteredLeyes().length} blocs`"></span>
+                </div>
+                <div class="flex-1 overflow-y-auto space-y-2.5 pr-1">
+                    <template x-for="ley in filteredLeyes()" :key="ley.id">
+                        <div class="bg-slate-950 border border-slate-800 hover:border-slate-700 rounded-xl p-3 transition">
+                            <div class="flex items-start justify-between gap-2 mb-1">
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold text-white uppercase" :class="ley.badgeClass" x-text="ley.codigo"></span>
+                                <span class="text-[10px] text-slate-400 bg-slate-800 px-1.5 py-0.5 rounded" x-text="ley.articulos"></span>
+                            </div>
+                            <h3 class="font-semibold text-xs text-slate-100 mb-1" x-text="ley.titulo"></h3>
+                            <p class="text-[11px] text-slate-400 mb-2" x-text="ley.resumen"></p>
+                            <div class="flex flex-wrap gap-1">
+                                <template x-for="tag in ley.tags" :key="tag">
+                                    <span class="text-[10px] bg-slate-900 border border-slate-800 text-slate-300 px-2 py-0.5 rounded-full" x-text="tag"></span>
+                                </template>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </section>
+
+            <!-- Quadrant 2: Terminis i Números -->
+            <section class="bg-slate-900/70 border border-slate-800 rounded-2xl p-4 flex flex-col h-[380px]">
+                <div class="flex items-center justify-between mb-3 border-b border-slate-800 pb-2">
+                    <div class="flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+                        <h2 class="font-bold text-xs uppercase tracking-wider text-slate-200">2. Terminis, Majories i Xifres Clau</h2>
+                    </div>
+                    <button @click="openModal('plazo')" class="text-xs text-amber-400 hover:underline"><i class="fa-solid fa-plus"></i> Afegir Termini</button>
+                </div>
+                <div class="flex-1 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 gap-2.5 pr-1">
+                    <template x-for="item in filteredPlazos()" :key="item.id">
+                        <div class="bg-slate-950 border border-slate-800 rounded-xl p-2.5 flex flex-col justify-between hover:border-amber-500/40 transition">
+                            <div>
+                                <div class="flex justify-between items-center mb-1">
+                                    <span class="text-[9px] font-bold px-1.5 py-0.5 rounded text-white" :class="item.badgeClass" x-text="item.ley"></span>
+                                    <button @click="toggleMastered(item.id)" :class="item.mastered ? 'text-emerald-400' : 'text-slate-600 hover:text-slate-400'" class="text-xs">
+                                        <i class="fa-solid" :class="item.mastered ? 'fa-circle-check' : 'fa-circle'"></i>
+                                    </button>
+                                </div>
+                                <h4 class="text-xs font-medium text-slate-200" x-text="item.concepto"></h4>
+                            </div>
+                            <div class="mt-2 pt-1.5 border-t border-slate-800/80 flex items-center justify-between">
+                                <span class="text-[11px] font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20" x-text="item.cifra"></span>
+                                <span class="text-[10px] text-slate-500 font-mono" x-text="item.art"></span>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </section>
+
+            <!-- Quadrant 3: Detector de Trampes -->
+            <section class="bg-slate-900/70 border border-slate-800 rounded-2xl p-4 flex flex-col h-[380px]">
+                <div class="flex items-center justify-between mb-3 border-b border-slate-800 pb-2">
+                    <div class="flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
+                        <h2 class="font-bold text-xs uppercase tracking-wider text-slate-200">3. Detector de Trampes del Test</h2>
+                    </div>
+                    <button @click="openModal('trampa')" class="text-xs text-rose-400 hover:underline"><i class="fa-solid fa-plus"></i> Afegir</button>
+                </div>
+                <div class="flex-1 overflow-y-auto space-y-2.5 pr-1">
+                    <template x-for="trampa in filteredTrampas()" :key="trampa.id">
+                        <div class="bg-slate-950 border border-slate-800 hover:border-rose-500/30 rounded-xl p-3 transition">
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="text-xs font-bold text-rose-400 flex items-center gap-1">
+                                    <i class="fa-solid fa-triangle-exclamation"></i>
+                                    <span x-text="trampa.titulo"></span>
+                                </span>
+                                <span class="text-[10px] text-slate-500" x-text="trampa.ley"></span>
+                            </div>
+                            <div class="grid grid-cols-2 gap-2 my-2 text-xs">
+                                <div class="bg-emerald-950/30 border border-emerald-500/20 rounded p-1.5 text-emerald-300">
+                                    <div class="text-[9px] text-emerald-400 uppercase font-bold">Realitat Legal</div>
+                                    <span x-text="trampa.correcto"></span>
+                                </div>
+                                <div class="bg-rose-950/30 border border-rose-500/20 rounded p-1.5 text-rose-300">
+                                    <div class="text-[9px] text-rose-400 uppercase font-bold">Trampa Habitual</div>
+                                    <span x-text="trampa.trampa"></span>
+                                </div>
+                            </div>
+                            <p class="text-[11px] text-slate-400 italic" x-text="`💡 Consell: ${trampa.consejo}`"></p>
+                        </div>
+                    </template>
+                </div>
+            </section>
+
+            <!-- Quadrant 4: Banc d'Errors -->
+            <section class="bg-slate-900/70 border border-slate-800 rounded-2xl p-4 flex flex-col h-[380px]">
+                <div class="flex items-center justify-between mb-3 border-b border-slate-800 pb-2">
+                    <div class="flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-purple-500"></span>
+                        <h2 class="font-bold text-xs uppercase tracking-wider text-slate-200">4. Banc d'Errors (Mur de Reestudi)</h2>
+                    </div>
+                    <button @click="openModal('error')" class="text-xs text-purple-400 hover:underline"><i class="fa-solid fa-plus"></i> Registrar</button>
+                </div>
+                <div class="flex-1 overflow-y-auto space-y-2.5 pr-1">
+                    <template x-for="err in filteredErrores()" :key="err.id">
+                        <div class="bg-slate-950 border border-slate-800 rounded-xl p-3 transition">
+                            <div class="flex justify-between items-start gap-2 mb-1">
+                                <p class="text-xs font-medium text-slate-200" x-text="err.pregunta"></p>
+                                <button @click="deleteError(err.id)" class="text-slate-600 hover:text-rose-400 text-xs"><i class="fa-solid fa-trash"></i></button>
+                            </div>
+                            <div class="bg-slate-900 rounded p-2 text-xs text-slate-300 my-1.5 border-l-2 border-purple-500">
+                                <span class="font-bold text-purple-400">Solució:</span> <span x-text="err.solucion"></span>
+                            </div>
+                            <div class="flex justify-between items-center text-[10px] text-slate-500">
+                                <span x-text="`Ref: ${err.articulo}`"></span>
+                                <div class="flex items-center gap-1">
+                                    <span>Domini:</span>
+                                    <template x-for="i in 3">
+                                        <button @click="incrementStreak(err.id, i)" :class="i <= err.racha ? 'text-emerald-400' : 'text-slate-700'" class="hover:scale-110 transition">
+                                            <i class="fa-solid fa-star"></i>
+                                        </button>
+                                    </template>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                    <template x-if="filteredErrores().length === 0">
+                        <div class="h-full flex flex-col items-center justify-center text-center p-6 text-slate-500">
+                            <i class="fa-solid fa-circle-check text-3xl text-emerald-500/40 mb-2"></i>
+                            <p class="text-xs">¡Cap error pendent registrat!</p>
+                        </div>
+                    </template>
+                </div>
+            </section>
+
+        </div>
+    </main>
+
+    <!-- 2. TESTS INTERACTIUS -->
+    <main class="flex-1 overflow-y-auto p-4 max-w-5xl mx-auto w-full" x-show="currentTab === 'tests'">
+        <!-- Test Setup Bar -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 mb-6 shadow-lg">
+            <div class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 pb-3 mb-4">
+                <div>
+                    <h2 class="text-base font-bold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-vial-circle-check text-indigo-400"></i> Generador de Tests per Temes
+                    </h2>
+                    <p class="text-xs text-slate-400">Selecciona la matèria i el mode per a posar a prova la teva preparació</p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="text-xs text-slate-400">Mode:</span>
+                    <button @click="testMode = 'practice'" :class="testMode === 'practice' ? 'bg-indigo-600 text-white font-semibold' : 'bg-slate-800 text-slate-400'" class="px-3 py-1 rounded-lg text-xs transition">Estudi (Immediat)</button>
+                    <button @click="testMode = 'exam'" :class="testMode === 'exam' ? 'bg-amber-600 text-white font-semibold' : 'bg-slate-800 text-slate-400'" class="px-3 py-1 rounded-lg text-xs transition">Simulacre Examen</button>
+                </div>
+            </div>
+
+            <!-- Categories -->
+            <div class="flex flex-wrap gap-2 text-xs">
+                <button @click="selectTestCategory('ALL')" :class="selectedTestCategory === 'ALL' ? 'bg-indigo-600 text-white font-bold' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'" class="px-3 py-1.5 rounded-lg transition">Tots els temes</button>
+                <button @click="selectTestCategory('CE')" :class="selectedTestCategory === 'CE' ? 'bg-red-500 text-white font-bold' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'" class="px-3 py-1.5 rounded-lg transition">CE 1978</button>
+                <button @click="selectTestCategory('LBRL')" :class="selectedTestCategory === 'LBRL' ? 'bg-blue-500 text-white font-bold' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'" class="px-3 py-1.5 rounded-lg transition">LBRL / Règim Local</button>
+                <button @click="selectTestCategory('LEY39')" :class="selectedTestCategory === 'LEY39' ? 'bg-amber-500 text-white font-bold' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'" class="px-3 py-1.5 rounded-lg transition">Procediment (Llei 39/40)</button>
+                <button @click="selectTestCategory('TREBEP')" :class="selectedTestCategory === 'TREBEP' ? 'bg-emerald-500 text-white font-bold' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'" class="px-3 py-1.5 rounded-lg transition">TREBEP / Laboral</button>
+                <button @click="selectTestCategory('OAME')" :class="selectedTestCategory === 'OAME' ? 'bg-purple-500 text-white font-bold' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'" class="px-3 py-1.5 rounded-lg transition">Bases OAME & Violí</button>
+            </div>
+        </div>
+
+        <!-- Quiz Container -->
+        <template x-if="activeQuestions.length > 0">
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl relative">
+                <!-- Test Progress Header -->
+                <div class="flex justify-between items-center mb-4 border-b border-slate-800 pb-3">
+                    <span class="text-xs font-semibold text-indigo-400 uppercase tracking-wider" x-text="`Pregunta ${currentQuestionIndex + 1} de ${activeQuestions.length}`"></span>
+                    <div class="flex items-center gap-3">
+                        <template x-if="testMode === 'exam'">
+                            <span class="text-xs font-mono font-bold px-2.5 py-1 bg-amber-500/10 text-amber-400 border border-amber-500/30 rounded-lg">
+                                <i class="fa-regular fa-clock mr-1"></i> <span x-text="formatTime(testSeconds)"></span>
+                            </span>
+                        </template>
+                        <button @click="resetTest()" class="text-xs text-slate-400 hover:text-white transition"><i class="fa-solid fa-rotate"></i> Reiniciar</button>
+                    </div>
+                </div>
+
+                <!-- Pregunta Actual -->
+                <div class="mb-6">
+                    <div class="flex items-start gap-2 mb-3">
+                        <span class="px-2 py-0.5 rounded text-[10px] font-bold text-white uppercase mt-0.5" :class="activeQuestions[currentQuestionIndex].badgeClass" x-text="activeQuestions[currentQuestionIndex].ley"></span>
+                        <h3 class="text-sm sm:text-base font-semibold text-white leading-relaxed" x-text="activeQuestions[currentQuestionIndex].question"></h3>
+                    </div>
+
+                    <!-- Opcions -->
+                    <div class="space-y-2.5 mt-4">
+                        <template x-for="(opt, idx) in activeQuestions[currentQuestionIndex].options" :key="idx">
+                            <button @click="selectAnswer(idx)" 
+                                    :disabled="testSubmitted && testMode === 'practice'"
+                                    :class="getOptionClass(idx)"
+                                    class="w-full text-left p-3.5 rounded-xl border text-xs sm:text-sm font-medium transition flex items-center justify-between gap-3">
+                                <div class="flex items-start gap-3">
+                                    <span class="w-6 h-6 rounded-full border border-slate-700 bg-slate-900 flex items-center justify-center font-bold text-xs flex-none" x-text="['A','B','C','D'][idx]"></span>
+                                    <span x-text="opt"></span>
+                                </div>
+                                <template x-if="testSubmitted || (userAnswers[currentQuestionIndex] !== null && testMode === 'practice')">
+                                    <i class="fa-solid" :class="idx === activeQuestions[currentQuestionIndex].correct ? 'fa-circle-check text-emerald-400' : (userAnswers[currentQuestionIndex] === idx ? 'fa-circle-xmark text-rose-400' : '')"></i>
+                                </template>
+                            </button>
+                        </template>
+                    </div>
+                </div>
+
+                <!-- Explicació de la Resposta -->
+                <template x-if="(userAnswers[currentQuestionIndex] !== null && testMode === 'practice') || testFinished">
+                    <div class="bg-indigo-950/40 border border-indigo-500/30 rounded-xl p-4 mb-6 text-xs text-indigo-200">
+                        <div class="font-bold mb-1 flex items-center gap-1.5 text-indigo-300">
+                            <i class="fa-solid fa-lightbulb"></i> Justificació i Base Legal:
+                        </div>
+                        <p x-text="activeQuestions[currentQuestionIndex].explanation"></p>
+                        <div class="mt-2 text-right">
+                            <button @click="addCurrentToErrors()" class="px-2.5 py-1 bg-rose-600/30 hover:bg-rose-600/50 border border-rose-500/40 text-rose-300 rounded text-[11px] font-semibold transition">
+                                <i class="fa-solid fa-plus mr-1"></i> Afegir al meu Banc d'Errors
+                            </button>
+                        </div>
+                    </div>
+                </template>
+
+                <!-- Controls -->
+                <div class="flex justify-between items-center pt-2">
+                    <button @click="currentQuestionIndex--" :disabled="currentQuestionIndex === 0" class="px-4 py-2 bg-slate-800 disabled:opacity-40 text-slate-300 hover:bg-slate-700 rounded-xl text-xs font-semibold transition">
+                        <i class="fa-solid fa-arrow-left mr-1"></i> Anterior
+                    </button>
+
+                    <template x-if="currentQuestionIndex < activeQuestions.length - 1">
+                        <button @click="currentQuestionIndex++" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-semibold transition">
+                            Següent <i class="fa-solid fa-arrow-right ml-1"></i>
+                        </button>
+                    </template>
+
+                    <template x-if="currentQuestionIndex === activeQuestions.length - 1 && !testFinished">
+                        <button @click="finishTest()" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold shadow-lg transition">
+                            Finalitzar i Avaluar <i class="fa-solid fa-check ml-1"></i>
+                        </button>
+                    </template>
+                </div>
+            </div>
+        </template>
+
+        <!-- Resultat del Test -->
+        <template x-if="testFinished">
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl text-center my-6">
+                <div class="w-16 h-16 rounded-full mx-auto mb-3 flex items-center justify-center text-2xl" :class="testScore >= 5 ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'">
+                    <i class="fa-solid" :class="testScore >= 5 ? 'fa-trophy' : 'fa-triangle-exclamation'"></i>
+                </div>
+                <h3 class="text-xl font-bold text-white mb-1" x-text="testScore >= 5 ? '¡Aprovat!' : 'Cal millorar el repàs'"></h3>
+                <p class="text-xs text-slate-400 mb-4">Puntuació calculada segons el barem oficial de l'OAME (Netes amb descompte -0,25 per error)</p>
+
+                <div class="grid grid-cols-3 gap-3 max-w-md mx-auto mb-6 text-xs">
+                    <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+                        <div class="text-slate-400 mb-0.5">Nota Final</div>
+                        <div class="text-lg font-extrabold" :class="testScore >= 5 ? 'text-emerald-400' : 'text-rose-400'" x-text="`${testScore.toFixed(2)} / 10`"></div>
+                    </div>
+                    <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+                        <div class="text-slate-400 mb-0.5">Encerts</div>
+                        <div class="text-lg font-bold text-emerald-400" x-text="correctAnswersCount()"></div>
+                    </div>
+                    <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+                        <div class="text-slate-400 mb-0.5">Errors</div>
+                        <div class="text-lg font-bold text-rose-400" x-text="wrongAnswersCount()"></div>
+                    </div>
+                </div>
+
+                <div class="flex justify-center gap-3">
+                    <button @click="resetTest()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-semibold shadow transition">
+                        <i class="fa-solid fa-rotate-right mr-1.5"></i> Tornar a fer
+                    </button>
+                    <button @click="currentTab = 'dashboard'" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-semibold transition">
+                        Anar al Panell
+                    </button>
+                </div>
+            </div>
+        </template>
+    </main>
+
+    <!-- 3. FLASHCARDS DE MEMORITZACIÓ -->
+    <main class="flex-1 overflow-y-auto p-4 max-w-3xl mx-auto w-full flex flex-col justify-center" x-show="currentTab === 'flashcards'">
+        <div class="text-center mb-4">
+            <h2 class="text-base font-bold text-white"><i class="fa-solid fa-clone text-indigo-400 mr-2"></i>Flashcards de Memorització Ràpida</h2>
+            <p class="text-xs text-slate-400">Fes clic a la targeta per veure la resposta i l'explicació legal</p>
+        </div>
+
+        <div class="w-full h-80 perspective-1000 cursor-pointer" @click="cardFlipped = !cardFlipped">
+            <div class="relative w-full h-full transition-transform duration-500 transform-style-3d" :class="{ 'rotate-y-180': cardFlipped }">
+                
+                <!-- Anvers -->
+                <div class="absolute inset-0 bg-slate-900 border-2 border-indigo-500/40 rounded-2xl p-6 flex flex-col justify-between backface-hidden shadow-2xl">
+                    <div class="flex justify-between items-center text-xs">
+                        <span class="px-2 py-0.5 rounded text-[10px] font-bold text-white uppercase" :class="flashcards[cardIndex]?.badgeClass" x-text="flashcards[cardIndex]?.ley"></span>
+                        <span class="text-slate-500 text-[10px]" x-text="`Targeta ${cardIndex + 1} de ${flashcards.length}`"></span>
+                    </div>
+                    <div class="text-center my-auto">
+                        <p class="text-xs text-indigo-400 uppercase tracking-widest font-bold mb-2">Pregunta / Concepte</p>
+                        <h3 class="text-lg font-semibold text-white leading-relaxed" x-text="flashcards[cardIndex]?.front"></h3>
+                    </div>
+                    <div class="text-center text-[11px] text-slate-500">
+                        <i class="fa-solid fa-rotate mr-1"></i> Clic per girar
+                    </div>
+                </div>
+
+                <!-- Revers -->
+                <div class="absolute inset-0 bg-indigo-950 border-2 border-indigo-400 rounded-2xl p-6 flex flex-col justify-between rotate-y-180 backface-hidden shadow-2xl">
+                    <div class="flex justify-between items-center text-xs">
+                        <span class="text-indigo-300 text-[10px] uppercase font-bold">Resposta Correcta</span>
+                        <span class="text-slate-400 font-mono text-[10px]" x-text="flashcards[cardIndex]?.ref"></span>
+                    </div>
+                    <div class="text-center my-auto space-y-2">
+                        <div class="text-xl font-bold text-amber-300" x-text="flashcards[cardIndex]?.back"></div>
+                        <p class="text-xs text-indigo-200" x-text="flashcards[cardIndex]?.detail"></p>
+                    </div>
+                    <div class="text-center text-[11px] text-indigo-300">
+                        <i class="fa-solid fa-circle-check mr-1"></i> Memoritzat
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <div class="flex justify-between items-center mt-6">
+            <button @click="prevCard()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-semibold transition">
+                <i class="fa-solid fa-chevron-left mr-1"></i> Anterior
+            </button>
+            <span class="text-xs text-slate-400 font-mono" x-text="`${cardIndex + 1} / ${flashcards.length}`"></span>
+            <button @click="nextCard()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-semibold transition">
+                Següent <i class="fa-solid fa-chevron-right ml-1"></i>
+            </button>
+        </div>
+    </main>
+
+    <!-- 4. TEMARI COMPLET AMB LECTOR INTEGRAT I APUNTS -->
+    <main class="flex-1 overflow-y-auto p-4 max-w-6xl mx-auto w-full" x-show="currentTab === 'temario'">
+        <!-- Capçalera Temari -->
+        <div class="flex flex-wrap justify-between items-center mb-4 border-b border-slate-800 pb-3 gap-3">
+            <div>
+                <h2 class="text-base font-bold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-book-open text-indigo-400"></i> Temari Oficial i Apunts Integrats (Violí A1 - OAME)
+                </h2>
+                <p class="text-xs text-slate-400">Consulta el temari complet desenvolupat, esquemes visuals i controla el teu estat de domini</p>
+            </div>
+            <div class="flex items-center gap-3">
+                <div class="bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-xl text-xs flex items-center gap-2">
+                    <span class="text-slate-400">Progrés Temari:</span>
+                    <span class="font-bold text-emerald-400" x-text="`${calculateSyllabusProgress()}%`"></span>
+                </div>
+                <button @click="temarioView = (temarioView === 'list' ? 'reader' : 'list')" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-semibold transition flex items-center gap-1.5">
+                    <i class="fa-solid" :class="temarioView === 'list' ? 'fa-book-open-reader' : 'fa-list'"></i>
+                    <span x-text="temarioView === 'list' ? 'Mode Lectura i Estudi' : 'Vista de Llista i Progrés'"></span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Cerca ràpida en temari -->
+        <div class="mb-4">
+            <input type="text" x-model="temarioSearch" placeholder="Cercar al temari (ex: Llibertat de càtedra, Recurt d'Alçada, Suzuki, OAME...)" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-indigo-500">
+        </div>
+
+        <!-- VISTA 1: LLISTA I CONTROL DE DOMINI -->
+        <div x-show="temarioView === 'list'" class="space-y-4">
+            <template x-for="bloc in filteredTemario()" :key="bloc.id">
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4">
+                    <h3 class="text-xs font-bold text-indigo-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                        <i class="fa-solid fa-folder"></i> <span x-text="bloc.nombre"></span>
+                    </h3>
+                    <div class="space-y-2">
+                        <template x-for="tema in bloc.temas" :key="tema.id">
+                            <div class="bg-slate-950 border border-slate-800/80 hover:border-slate-700 rounded-xl p-3 flex flex-wrap items-center justify-between gap-3 text-xs transition">
+                                <div class="flex-1 min-w-[280px]">
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <span class="px-2 py-0.5 rounded text-[10px] font-bold text-white uppercase" :class="tema.badgeClass" x-text="tema.codigo"></span>
+                                        <span class="font-semibold text-slate-100" x-text="`Tema ${tema.numero}: ${tema.titulo}`"></span>
+                                    </div>
+                                    <p class="text-[11px] text-slate-400" x-text="tema.descripcion"></p>
+                                </div>
+
+                                <div class="flex items-center gap-2">
+                                    <button @click="openTopicReader(tema)" class="px-2.5 py-1.5 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 rounded-lg text-xs font-medium transition flex items-center gap-1">
+                                        <i class="fa-solid fa-file-lines"></i> Llegir Apunts
+                                    </button>
+                                    <select x-model="tema.estado" @change="saveData()" class="bg-slate-900 border border-slate-800 text-slate-300 text-xs rounded-lg p-1.5 focus:outline-none focus:border-indigo-500">
+                                        <option value="pendent">🔴 Pendent</option>
+                                        <option value="llegit">🟡 Llegit</option>
+                                        <option value="esquematitzat">🔵 Esquematitzat</option>
+                                        <option value="dominat">🟢 Dominat</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </template>
+        </div>
+
+        <!-- VISTA 2: LECTOR INTEGRAT D'APUNTS (MODE LECTURA) -->
+        <div x-show="temarioView === 'reader'" class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+            <!-- Menú lateral de temes -->
+            <div class="lg:col-span-4 bg-slate-900 border border-slate-800 rounded-2xl p-3 max-h-[700px] overflow-y-auto space-y-3">
+                <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 px-1">Índex del Temari</div>
+                <template x-for="bloc in filteredTemario()" :key="bloc.id">
+                    <div>
+                        <div class="text-[11px] font-bold text-indigo-400 mb-1 px-1" x-text="bloc.nombre"></div>
+                        <div class="space-y-1">
+                            <template x-for="tema in bloc.temas" :key="tema.id">
+                                <button @click="selectedTopic = tema" 
+                                        :class="selectedTopic?.id === tema.id ? 'bg-indigo-600 text-white font-semibold' : 'bg-slate-950 text-slate-300 hover:bg-slate-800'"
+                                        class="w-full text-left p-2 rounded-xl text-xs transition flex items-center justify-between gap-2">
+                                    <span class="truncate" x-text="`T${tema.numero}. ${tema.titulo}`"></span>
+                                    <span class="w-2 h-2 rounded-full flex-none" :class="{ 'bg-rose-500': tema.estado==='pendent', 'bg-amber-400': tema.estado==='llegit', 'bg-blue-400': tema.estado==='esquematitzat', 'bg-emerald-400': tema.estado==='dominat' }"></span>
+                                </button>
+                            </template>
+                        </div>
+                    </div>
+                </template>
+            </div>
+
+            <!-- Visor del Tema Seleccionat -->
+            <div class="lg:col-span-8 bg-slate-900 border border-slate-800 rounded-2xl p-5 overflow-y-auto max-h-[700px] shadow-2xl">
+                <template x-if="selectedTopic">
+                    <div>
+                        <!-- Capçalera del Tema -->
+                        <div class="border-b border-slate-800 pb-3 mb-4 flex flex-wrap justify-between items-start gap-3">
+                            <div>
+                                <div class="flex items-center gap-2 mb-1">
+                                    <span class="px-2 py-0.5 rounded text-[10px] font-bold text-white uppercase" :class="selectedTopic.badgeClass" x-text="selectedTopic.codigo"></span>
+                                    <span class="text-xs text-indigo-400 font-bold uppercase" x-text="`Tema ${selectedTopic.numero}`"></span>
+                                </div>
+                                <h2 class="text-lg font-bold text-white" x-text="selectedTopic.titulo"></h2>
+                                <p class="text-xs text-slate-400 mt-0.5" x-text="selectedTopic.descripcion"></p>
+                            </div>
+
+                            <div class="flex items-center gap-2">
+                                <select x-model="selectedTopic.estado" @change="saveData()" class="bg-slate-950 border border-slate-800 text-slate-200 text-xs rounded-lg p-1.5 focus:outline-none">
+                                    <option value="pendent">🔴 Pendent</option>
+                                    <option value="llegit">🟡 Llegit</option>
+                                    <option value="esquematitzat">🔵 Esquematitzat</option>
+                                    <option value="dominat">🟢 Dominat</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Pestanyes internes del Lector -->
+                        <div class="flex border-b border-slate-800 text-xs mb-4 gap-2">
+                            <button @click="readerTab = 'resumen'" :class="readerTab === 'resumen' ? 'border-b-2 border-indigo-500 text-indigo-400 font-bold' : 'text-slate-400 hover:text-white'" class="pb-2 px-1 transition">
+                                <i class="fa-solid fa-align-left mr-1"></i> Resum Executiu
+                            </button>
+                            <button @click="readerTab = 'articulos'" :class="readerTab === 'articulos' ? 'border-b-2 border-indigo-500 text-indigo-400 font-bold' : 'text-slate-400 hover:text-white'" class="pb-2 px-1 transition">
+                                <i class="fa-solid fa-gavel mr-1"></i> Articles i Normativa Clau
+                            </button>
+                            <button @click="readerTab = 'esquema'" :class="readerTab === 'esquema' ? 'border-b-2 border-indigo-500 text-indigo-400 font-bold' : 'text-slate-400 hover:text-white'" class="pb-2 px-1 transition">
+                                <i class="fa-solid fa-sitemap mr-1"></i> Esquema de Repàs
+                            </button>
+                        </div>
+
+                        <!-- Contingut pestanya 1: Resum Executiu -->
+                        <div x-show="readerTab === 'resumen'" class="space-y-3 text-xs leading-relaxed text-slate-300">
+                            <template x-for="(p, idx) in selectedTopic.contenido.resumen" :key="idx">
+                                <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800/80" x-html="formatMessageText(p)"></div>
+                            </template>
+                        </div>
+
+                        <!-- Contingut pestanya 2: Articles Clau -->
+                        <div x-show="readerTab === 'articulos'" class="space-y-2.5 text-xs">
+                            <template x-for="art in selectedTopic.contenido.articulos" :key="art.ref">
+                                <div class="bg-slate-950 border border-slate-800 rounded-xl p-3">
+                                    <div class="flex justify-between items-center mb-1">
+                                        <span class="font-bold text-amber-300 font-mono" x-text="art.ref"></span>
+                                        <span class="text-[10px] text-slate-500 uppercase" x-text="art.categoria"></span>
+                                    </div>
+                                    <p class="text-slate-300" x-text="art.texto"></p>
+                                </div>
+                            </template>
+                        </div>
+
+                        <!-- Contingut pestanya 3: Esquema -->
+                        <div x-show="readerTab === 'esquema'" class="space-y-3 text-xs">
+                            <div class="bg-indigo-950/30 border border-indigo-500/20 p-4 rounded-xl">
+                                <h4 class="font-bold text-indigo-300 mb-2 flex items-center gap-1.5">
+                                    <i class="fa-solid fa-key"></i> Conceptes Imprescindibles per al Test i l'Examen Pràctic:
+                                </h4>
+                                <ul class="list-disc pl-5 space-y-1.5 text-slate-300">
+                                    <template x-for="puntos in selectedTopic.contenido.esquema" :key="puntos">
+                                        <li x-text="puntos"></li>
+                                    </template>
+                                </ul>
+                            </div>
+                        </div>
+
+                    </div>
+                </template>
+
+                <template x-if="!selectedTopic">
+                    <div class="h-full flex flex-col items-center justify-center text-center p-12 text-slate-500">
+                        <i class="fa-solid fa-book-open text-4xl mb-3 text-indigo-500/40"></i>
+                        <p class="text-xs">Selecciona un tema de la llista esquerra per començar a estudiar els apunts desenvolupats.</p>
+                    </div>
+                </template>
+            </div>
+        </div>
+    </main>
+
+    <!-- 5. ASSISTENT DE DUBTES AMB IA (GEMINI 3 FLASH) -->
+    <main class="flex-1 overflow-y-auto p-4 max-w-4xl mx-auto w-full flex flex-col h-full" x-show="currentTab === 'assistant'">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex-1 flex flex-col shadow-2xl overflow-hidden min-h-[500px]">
+            <!-- Header -->
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3 mb-3">
+                <div class="flex items-center gap-2">
+                    <div class="p-2 bg-indigo-500/20 text-indigo-400 rounded-lg">
+                        <i class="fa-solid fa-robot"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-sm font-bold text-white">Assistent de Dubtes Legislatius i Pedagògics</h2>
+                        <p class="text-[11px] text-slate-400">Pregunta qualsevol dubte sobre les lleis, procediments o la prova de violí</p>
+                    </div>
+                </div>
+                <span class="text-[10px] px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Gemini 3 Flash</span>
+            </div>
+
+            <!-- Pre-defined Queries -->
+            <div class="flex flex-wrap gap-1.5 mb-3 text-[11px]">
+                <button @click="sendQuickQuery('Resum del Recurs d\'Alçada en la Llei 39/2015')" class="px-2.5 py-1 bg-slate-950 hover:bg-slate-800 border border-slate-800 text-indigo-300 rounded-lg transition">Recurs d'Alçada</button>
+                <button @click="sendQuickQuery('Estructura de la prova pedagògica de violí per a l\'OAME Sant Cugat')" class="px-2.5 py-1 bg-slate-950 hover:bg-slate-800 border border-slate-800 text-purple-300 rounded-lg transition">Prova Pedagògica Violí</button>
+                <button @click="sendQuickQuery('Quadre de faltes molt greus i sancions segons el TREBEP')" class="px-2.5 py-1 bg-slate-950 hover:bg-slate-800 border border-slate-800 text-emerald-300 rounded-lg transition">Faltes TREBEP</button>
+                <button @click="sendQuickQuery('Competències de l\'Alcalde vs el Ple en la LBRL')" class="px-2.5 py-1 bg-slate-950 hover:bg-slate-800 border border-slate-800 text-blue-300 rounded-lg transition">LBRL Alcalde vs Ple</button>
+            </div>
+
+            <!-- Xat -->
+            <div class="flex-1 overflow-y-auto space-y-3 p-2 bg-slate-950 rounded-xl border border-slate-800/80 mb-3" id="chatContainer">
+                <template x-for="(msg, i) in chatMessages" :key="i">
+                    <div class="flex" :class="msg.role === 'user' ? 'justify-end' : 'justify-start'">
+                        <div class="max-w-[85%] rounded-2xl p-3 text-xs leading-relaxed shadow"
+                             :class="msg.role === 'user' ? 'bg-indigo-600 text-white rounded-br-none' : 'bg-slate-900 border border-slate-800 text-slate-200 rounded-bl-none'">
+                            <div class="font-bold mb-1 text-[10px] opacity-75" x-text="msg.role === 'user' ? 'Tu' : 'Assistent AI'"></div>
+                            <div x-html="formatMessageText(msg.text)"></div>
+                        </div>
+                    </div>
+                </template>
+                <template x-if="aiLoading">
+                    <div class="flex justify-start">
+                        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3 text-xs text-slate-400 flex items-center gap-2">
+                            <i class="fa-solid fa-circle-notch fa-spin text-indigo-400"></i> Cercant i analitzant la normativa...
+                        </div>
+                    </div>
+                </template>
+            </div>
+
+            <!-- Input Form -->
+            <form @submit.prevent="sendAiMessage()" class="flex gap-2">
+                <input type="text" x-model="aiInput" placeholder="Escriu el teu dubte (Ex: Dies hàbils en agost segons Llei 39/2015)..." class="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500">
+                <button type="submit" :disabled="!aiInput.trim() || aiLoading" class="px-4 py-2 bg-indigo-600 disabled:opacity-50 hover:bg-indigo-500 text-white font-semibold rounded-xl text-xs transition flex items-center gap-1.5">
+                    <span>Enviar</span> <i class="fa-solid fa-paper-plane"></i>
+                </button>
+            </form>
+        </div>
+    </main>
+
+    <!-- MODAL BASES CONVOCATÒRIA -->
+    <div x-show="showBasesModal" x-cloak class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+        <div @click.away="showBasesModal = false" class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-3xl p-6 shadow-2xl overflow-y-auto max-h-[85vh]">
+            <div class="flex justify-between items-center mb-4 border-b border-slate-800 pb-3">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-graduation-cap text-amber-400 text-xl"></i>
+                    <div>
+                        <h3 class="font-bold text-base text-white">Resum de les Bases: Professor/a Violí A1</h3>
+                        <p class="text-xs text-slate-400">Organisme Autònom Municipal d'Educació (OAME) - Sant Cugat del Vallès</p>
+                    </div>
+                </div>
+                <button @click="showBasesModal = false" class="text-slate-500 hover:text-white p-1"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                <!-- Proves -->
+                <div class="bg-slate-950 p-4 rounded-xl border border-slate-800">
+                    <h4 class="font-bold text-indigo-400 uppercase text-[11px] mb-2 flex items-center gap-2">
+                        <i class="fa-solid fa-pen-nib"></i> 1. Fase Oposició (Màx 60 punts)
+                    </h4>
+                    <ul class="space-y-2 text-slate-300">
+                        <li class="bg-slate-900 p-2 rounded border border-slate-800">
+                            <span class="font-bold text-amber-300">1a Prova: Test Coneixements (10p)</span>
+                            <p class="text-[11px] text-slate-400 mt-0.5">60 preguntes tipus test. Mínim 5p. Errors descompte -1/4 (-0,25).</p>
+                        </li>
+                        <li class="bg-slate-900 p-2 rounded border border-slate-800">
+                            <span class="font-bold text-emerald-300">2a Prova: Competències Docents (50p)</span>
+                            <p class="text-[11px] text-slate-400 mt-0.5">Mínim 25p sumant els dos exercicis:</p>
+                            <ul class="list-disc pl-4 mt-1 text-[11px] space-y-0.5 text-slate-400">
+                                <li><strong>Ex. Interpretatiu (10p):</strong> 10-15 min violí solo/acompanyat. Partitures 10 dies abans.</li>
+                                <li><strong>Ex. Pedagògic (40p):</strong> 20m preparació supòsit + 20m classe grupal (Bàsic) + 20m classe individual (Professional).</li>
+                            </ul>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Bareme -->
+                <div class="bg-slate-950 p-4 rounded-xl border border-slate-800">
+                    <h4 class="font-bold text-emerald-400 uppercase text-[11px] mb-2 flex items-center gap-2">
+                        <i class="fa-solid fa-award"></i> 2. Fase Concurs (Màx 40 punts)
+                    </h4>
+                    <ul class="space-y-2 text-slate-300">
+                        <li class="bg-slate-900 p-2 rounded border border-slate-800">
+                            <span class="font-bold text-blue-300">Prova Competencial / Psicotècnic (10p)</span>
+                            <p class="text-[11px] text-slate-400 mt-0.5">Entrevista conductual / perfil P023 municipal.</p>
+                        </li>
+                        <li class="bg-slate-900 p-2 rounded border border-slate-800">
+                            <span class="font-bold text-teal-300">Experiència Docent (15p màx)</span>
+                            <p class="text-[11px] text-slate-400 mt-0.5">Escola Pública Música: 2p/curs (0,20p/mes).</p>
+                        </li>
+                        <li class="bg-slate-900 p-2 rounded border border-slate-800">
+                            <span class="font-bold text-purple-300">Formació Complementària (14p màx)</span>
+                            <p class="text-[11px] text-slate-400 mt-0.5">Titulacions, Màster, Cursos acreditats, Català > C1.</p>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            <div class="mt-4 pt-3 border-t border-slate-800 flex justify-between items-center text-xs">
+                <span class="text-slate-500 font-mono">DOGC Núm. 9753 - Exp. 34923/2026</span>
+                <button @click="showBasesModal = false" class="px-4 py-1.5 bg-indigo-600 text-white font-semibold rounded-lg">Entès</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL AFEGIR ELEMENTS -->
+    <div x-show="modalOpen" x-cloak class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+        <div @click.away="modalOpen = false" class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-5 shadow-2xl">
+            <div class="flex justify-between items-center mb-4 border-b border-slate-800 pb-2">
+                <h3 class="font-bold text-sm text-white flex items-center gap-2">
+                    <i class="fa-solid fa-pen-to-square text-indigo-400"></i>
+                    <span x-text="modalType === 'plazo' ? 'Afegir Nou Termini/Xifra' : (modalType === 'trampa' ? 'Afegir Concepte Trampa' : 'Registrar Pregunta Fallada')"></span>
+                </h3>
+                <button @click="modalOpen = false" class="text-slate-500 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <template x-if="modalType === 'plazo'">
+                <div class="space-y-3 text-xs">
+                    <div>
+                        <label class="block text-slate-400 mb-1">Llei / Norma</label>
+                        <select x-model="formPlazo.ley" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white">
+                            <option value="CE">Constitució Espanyola (CE)</option>
+                            <option value="LBRL">LBRL / Règim Local</option>
+                            <option value="LEY39">Llei 39/2015 i 40/2015</option>
+                            <option value="TREBEP">TREBEP / Laboral</option>
+                            <option value="OAME">Bases OAME Violí</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-slate-400 mb-1">Concepte / Tràmit</label>
+                        <input type="text" x-model="formPlazo.concepto" placeholder="Ex: Recurs d'Alçada" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white">
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-slate-400 mb-1">Termini / Majoria</label>
+                            <input type="text" x-model="formPlazo.cifra" placeholder="Ex: 1 mes" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white">
+                        </div>
+                        <div>
+                            <label class="block text-slate-400 mb-1">Article Ref.</label>
+                            <input type="text" x-model="formPlazo.art" placeholder="Ex: Art. 122" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white">
+                        </div>
+                    </div>
+                </div>
+            </template>
+
+            <template x-if="modalType === 'error'">
+                <div class="space-y-3 text-xs">
+                    <div>
+                        <label class="block text-slate-400 mb-1">Pregunta que has fallat</label>
+                        <textarea x-model="formError.pregunta" rows="2" placeholder="Escriu l'enunciat..." class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white"></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-slate-400 mb-1">Solució Correcta</label>
+                        <input type="text" x-model="formError.solucion" placeholder="Ex: Resposta b) 10 dies hàbils" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white">
+                    </div>
+                    <div>
+                        <label class="block text-slate-400 mb-1">Article de Justificació</label>
+                        <input type="text" x-model="formError.articulo" placeholder="Ex: Llei 39/2015 Art. 68" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white">
+                    </div>
+                </div>
+            </template>
+
+            <div class="mt-5 flex justify-end gap-2">
+                <button @click="modalOpen = false" class="px-3 py-1.5 bg-slate-800 text-slate-300 rounded-lg text-xs font-semibold">Cancel·lar</button>
+                <button @click="saveModalItem()" class="px-4 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-semibold">Desar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- LOGICA ALPINE.JS -->
+    <script>
+        function canvasApp() {
+            return {
+                currentTab: 'dashboard',
+                filterLey: 'ALL',
+                searchQuery: '',
+                examDate: '2026-11-15',
+                showBasesModal: false,
+                modalOpen: false,
+                modalType: 'plazo',
+
+                // Lector de temari estat
+                temarioView: 'list', // 'list' o 'reader'
+                selectedTopic: null,
+                temarioSearch: '',
+                readerTab: 'resumen', // 'resumen', 'articulos', 'esquema'
+
+                formPlazo: { ley: 'CE', concepto: '', cifra: '', art: '' },
+                formTrampa: { titulo: '', ley: '', correcto: '', trampa: '', consejo: '' },
+                formError: { pregunta: '', solucion: '', articulo: '' },
+
+                // Test Interactive State
+                selectedTestCategory: 'ALL',
+                testMode: 'practice', 
+                activeQuestions: [],
+                currentQuestionIndex: 0,
+                userAnswers: [],
+                testSubmitted: false,
+                testFinished: false,
+                testScore: 0,
+                testSeconds: 0,
+                testTimerInterval: null,
+
+                // Flashcard Interactive State
+                cardIndex: 0,
+                cardFlipped: false,
+
+                // AI Assistant State
+                aiInput: '',
+                aiLoading: false,
+                chatMessages: [
+                    { role: 'assistant', text: "Hola! Sóc el teu assistent de repàs legislatiu i pedagògic per a les oposicions de **Professora de Violí A1 (OAME Sant Cugat)**. Em pots fer qualsevol consulta sobre la Llei 39/2015, LBRL, TREBEP, Constitució o sobre el supòsit pedagògic de violí." }
+                ],
+
+                leyes: [
+                    { id: 1, codigo: 'CE', badgeClass: 'bg-red-500', titulo: 'Constitució Espanyola de 1978', articulos: '169 Articles', resumen: 'Drets fonamentals (Art 14-29), Administració Pública (Art 103), Autonomia Local (Art 137, 140, 141).', tags: ['Art. 103 Principis', 'Art. 20 Llibertat Càtedra'] },
+                    { id: 2, codigo: 'LBRL', badgeClass: 'bg-blue-500', titulo: 'LBRL (7/1985) i TR LMRL Catalunya', articulos: 'Règim Local', resumen: 'Organització municipal (Alcalde, Ple, Junta de Govern) i competències en Escoles de Música (Art 25 LBRL).', tags: ['Escoles de Música', 'Competències'] },
+                    { id: 3, codigo: 'LEY39', badgeClass: 'bg-amber-500', titulo: 'LPACAP (Llei 39/2015) i LRJSP (Llei 40/2015)', articulos: 'Procediment', resumen: 'Dies hàbils, silenci administratiu, recursos (Alçada/Reposició) i funcionament d\'òrgans col·legiats.', tags: ['Recursos', 'Dies Hàbils', 'Silenci'] },
+                    { id: 4, codigo: 'TREBEP', badgeClass: 'bg-emerald-500', titulo: 'TRLEBEP (RDL 5/2015) i Estatut Treballadors', articulos: 'Ocupació Pública', resumen: 'Personal laboral fix (Grup A1), drets, deures, règim disciplinari, faltes i sancions.', tags: ['Laboral A1', 'Faltes i Sancions'] },
+                    { id: 5, codigo: 'OAME', badgeClass: 'bg-purple-500', titulo: 'Bases Específiques OAME Sant Cugat', articulos: 'Exp. 34923/2026', resumen: 'Normes específiques del concurs-oposició per a 2 places de Violí A1, estructura de proves i barem.', tags: ['Test 60p', 'Prova Violí Solo', 'Cl. Pedagògica'] }
+                ],
+
+                // DADES DEL TEMARI COMPLET AMB APUNTS INTEGRATS
+                temario: [
+                    {
+                        id: 1,
+                        nombre: "Bloc I: Dret Constitucional i Règim Local",
+                        temas: [
+                            { 
+                                id: 101, numero: 1, codigo: 'CE', badgeClass: 'bg-red-500',
+                                titulo: "La Constitució Espanyola de 1978 i Dret Educatiu", 
+                                descripcion: "Drets fonamentals, llibertat de càtedra (Art 20), dret a l'educació (Art 27) i principis de l'Administració Pública (Art 103).", 
+                                estado: "dominat",
+                                contenido: {
+                                    resumen: [
+                                        "La **Constitució Espanyola de 1978** és la norma suprema de l'ordenament jurídic espanyol. Per al cos de professorat de música municipal (Grup A1), destaquen tres pilars constitucionals fonamentals.",
+                                        "**Llibertat de Càtedra (Art. 20.1.c CE):** Garanteix l'autonomia del docent per desenvolupar la seva activitat pedagògica d'acord amb la seva llibertat d'expressió científica i artística, respectant sempre el Projecte Educatiu de Centre (PEC).",
+                                        "**Dret a l'Educació (Art. 27 CE):** Garanteix el dret a l'educació i la llibertat d'ensenyament. Els poders públics han de sostenir els centres educatius públics i garantir la formació integral.",
+                                        "**Principis de l'Administració (Art. 103.1 CE):** L'Administració serveix amb objectivitat els interessos generals i actua d'acord amb els principis de **eficàcia, jerarquia, descentralització, desconcentració i coordinació**, amb subjecció plena a la llei i al Dret."
+                                    ],
+                                    articulos: [
+                                        { ref: "Art. 20.1.c CE", categoria: "Drets Fonamentals", texto: "Reconeix el dret a la llibertat de càtedra en l'exercici de la docència." },
+                                        { ref: "Art. 27 CE", categoria: "Educació", texto: "Tothom té dret a l'educació. Es reconeix la llibertat d'ensenyament i l'autonomia dels centres." },
+                                        { ref: "Art. 103.1 CE", categoria: "Administració", texto: "L'Administració Pública serveix amb objectivitat els interessos generals i actua segons els principis d'eficàcia i coordinació." },
+                                        { ref: "Art. 137 i 140 CE", categoria: "Autonomia Local", texto: "Garanteix l'autonomia dels municipis per a la gestió dels seus respectius interessos." }
+                                    ],
+                                    esquema: [
+                                        "Llibertat de càtedra vs. Projecte Educatiu de Centre (PEC): El docent té llibertat metodològica sense contravenir la programació general.",
+                                        "Principis Art. 103 CE: Eficàcia, Jerarquia, Descentralització, Desconcentració i Coordinació.",
+                                        "Accés a la Funció Pública (Art. 103.3 i 23.2 CE): Principis de Mèrit, Capacitat i Publicitat."
+                                    ]
+                                }
+                            },
+                            { 
+                                id: 102, numero: 2, codigo: 'LBRL', badgeClass: 'bg-blue-500',
+                                titulo: "Règim Local Espanyol i Català (LBRL 7/1985 i TRMRLC 2/2003)", 
+                                descripcion: "Organització municipal (Alcalde, Ple, Junta de Govern) i competències en Escoles Municipals de Música.", 
+                                estado: "esquematitzat",
+                                contenido: {
+                                    resumen: [
+                                        "Les Escoles Municipals de Música (EMM) s'emmarquen dins la **competència municipal de promoció de la cultura i equipaments culturals/educatius** (Art. 25 LBRL).",
+                                        "**Òrgans de Govern Municipals:**\n- **El Ple Municipal:** Competent per aprovar la plantilla de personal, el pressupost, la creació de l'OAME i el Reglament Orgànic de l'Escola.\n- **L'Alcalde/ssa:** Màxima autoritat, competent per a la direcció del govern, la gestió econòmica ordinària i la prefectura superior de tot el personal.\n- **La Junta de Govern Local:** Assisteix a l'Alcalde i exerceix les atribucions que aquest o el Ple li deleguin.",
+                                        "**El Decret 179/1993 de la Generalitat de Catalunya:** Regula les escoles de música d'iniciativa pública, establint que no tenen caràcter d'ensenyaments reglats però sí d'oferta educativa d'interès públic general."
+                                    ],
+                                    articulos: [
+                                        { ref: "Art. 22 LBRL", categoria: "Ple Municipal", texto: "Competència indelegable per aprovar reglament organitzatiu, plantilla de personal i pressupost." },
+                                        { ref: "Art. 25.2.n LBRL", categoria: "Competències", texto: "Atribueix als municipis competències en promoció de la cultura i equipaments culturals." },
+                                        { ref: "Art. 85 LBRL", categoria: "Gestió Serveis", texto: "Regula les formes de gestió directa: Organisme Autònom Municipal (com l'OAME de Sant Cugat)." }
+                                    ],
+                                    esquema: [
+                                        "Naturalesa jurídica de l'OAME: Organisme Autònom Local amb personalitat jurídica pròpia i autonomia de gestió.",
+                                        "Competència de creació d'EMM: Ple Municipal d'acord amb el Decret 179/1993 de la Generalitat.",
+                                        "Diferència entre Ensenyament Reglat (Conservatori) i No Reglat (Escola Municipal de Música)."
+                                    ]
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        id: 2,
+                        nombre: "Bloc II: Procediment Administratiu i Ocupació Pública",
+                        temas: [
+                            { 
+                                id: 201, numero: 3, codigo: 'LEY39', badgeClass: 'bg-amber-500',
+                                titulo: "El Procediment Administratiu Comú (Llei 39/2015 LPACAP)", 
+                                descripcion: "Fases del procediment, dies hàbils, agost, silenci administratiu i recursos d'Alçada i Reposició.", 
+                                estado: "esquematitzat",
+                                contenido: {
+                                    resumen: [
+                                        "La **Llei 39/2015 (LPACAP)** regula les relacions entre la ciutadania i les Administracions Públiques. De cara als tests d'oposicions, les dades numèriques i de procediment són altament preguntades.",
+                                        "**Còmput de Terminis (Art. 30):**\n- **Dies Hàbils:** S'exclouen dissabtes, diumenges i festius. **El mes d'agost és INHÀBIL** per als procediments administratius comuns.\n- **Dies Naturals:** Només quan una llei ho expressi clarament (ex: impugnació de preguntes de test en les bases OAME, que fixa 5 dies naturals!).",
+                                        "**Recursos Administratius:**\n- **Recurs d'Alçada (Art. 121-122):** Contra actes que no posen fi a la via administrativa. Termini interposició: **1 mes** (acte exprés). Resol el superior jeràrquic.\n- **Recurs Potestatiu de Reposició (Art. 123-124):** Contra actes que P OSEN fi a la via administrativa. Termini: **1 mes**. Resol el mateix òrgan."
+                                    ],
+                                    articulos: [
+                                        { ref: "Art. 30 LPACAP", categoria: "Terminis", texto: "Són dies hàbils tots els dies de l'any excepte dissabtes, diumenges, festius i el mes d'agost." },
+                                        { ref: "Art. 122 LPACAP", categoria: "Recurs Alçada", texto: "Termini d'un mes per interposar recurs d'alçada contra acte exprés." },
+                                        { ref: "Art. 68 LPACAP", categoria: "Esmena", texto: "Termini de 10 dies hàbils per esmenar sol·licituds (ampliable 5 dies en casos complexos)." }
+                                    ],
+                                    esquema: [
+                                        "Dies hàbils: Exclou dissabtes, diumenges, festius i AGOST.",
+                                        "Silenci Administratiu: Com a regla general és estimatori, excepte si una norma amb rang de llei estableix el contrari.",
+                                        "Recurs d'Alçada = 1 mes interposició / 3 mesos per resoldre (silenci desestimatori)."
+                                    ]
+                                }
+                            },
+                            { 
+                                id: 202, numero: 4, codigo: 'TREBEP', badgeClass: 'bg-emerald-500',
+                                titulo: "L'Estatut Bàsic de l'Empleat Públic (TREBEP RDL 5/2015)", 
+                                descripcion: "Personal laboral fix Grup A1, drets, deures, codi de conducta, faltes i terminis de prescripció.", 
+                                estado: "llegit",
+                                contenido: {
+                                    resumen: [
+                                        "El **TREBEP** s'aplica tant al personal funcionari com al **personal laboral** de les administracions públiques (la plaça de Violí A1 a l'OAME és laboral fixa de plantilla).",
+                                        "**Classificació del Personal (Art. 8):**\n- **Grup A (Subgrup A1):** Es requereix Títol Universitari de Grau o Títol Superior de Música (equivalent a Grau Universitari a efectes de la funció pública).",
+                                        "**Règim Disciplinari i Prescripció de Faltes (Art. 95-97):**\n- **Faltes Molt Greus:** Prescriuen als **3 anys**. (Ex: Incompliment del deure de fidelitat a la Constitució, assetjament, abandó del servei).\n- **Faltes Greus:** Prescriuen als **2 anys**.\n- **Faltes Lleus:** Prescriuen als **6 mesos**."
+                                    ],
+                                    articulos: [
+                                        { ref: "Art. 76 TREBEP", categoria: "Grups Titulació", texto: "Grup A1: Títol de Grau o Títol Superior de Música." },
+                                        { ref: "Art. 95 TREBEP", categoria: "Faltes Disciplinàries", texto: "Tipifica les faltes molt greus, greus i lleus del personal empleat públic." },
+                                        { ref: "Art. 97 TREBEP", categoria: "Prescripció", texto: "Prescripció faltes: Molt greus 3 anys, Greus 2 anys, Lleus 6 mesos." }
+                                    ],
+                                    esquema: [
+                                        "Prescripció Faltes: 3 anys (Molt Greu), 2 anys (Greu), 6 mesos (Lleu).",
+                                        "Prescripció Sancions imposades: 3 anys (Molt Greu), 2 anys (Greu), 1 any (Lleu).",
+                                        "Codi de Conducta (Art. 52-54): Principis ètics i de conducta professional."
+                                    ]
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        id: 3,
+                        nombre: "Bloc III: Didàctica i Pedagogia Específica de Violí",
+                        temas: [
+                            { 
+                                id: 301, numero: 5, codigo: 'OAME', badgeClass: 'bg-purple-500',
+                                titulo: "Tècnica i Ergonomia del Violí en Edats Primerenques", 
+                                descripcion: "Mètodes visuals i auditius (Suzuki, Rolland, Sheila Nelson). Postura, afinació i coordinació motora.", 
+                                estado: "dominat",
+                                contenido: {
+                                    resumen: [
+                                        "La docència del violí en edats primerenques (Nivell Bàsic Infantil, de 6 a 10 anys) requereix un enfocament metodològic basat en l'**oïda, la coordinació motora relaxada i l'aprenentatge vivencial**.",
+                                        "**Mètode Suzuki (Llengua Materna):** Basat en la llisten-and-repeat (escoltar i repetir), participació activa de la família, ajornament de la lectura de la partitura fins a consolidar l'ergonomia i la postura.",
+                                        "**Pedagogia de Paul Rolland:** Enfocament centrat en el **moviment lliure de tensions, el balanç del cos i la flexibilitat de les articulacions** (canell d'arc, dits esquerres lliures, ús de jocs ergonòmics).",
+                                        "**Ajust Ergonomia:** Selecció adequada d'almofada (barbeta/costella) adaptada a l'anatomia del xiquet o xiqueta per evitar tensions a la columna cervical."
+                                    ],
+                                    articulos: [
+                                        { ref: "Supòsit Pedagògic OAME", categoria: "Classe Grupal", texto: "Disseny d'una classe de grup de 20 minuts per a 3-4 alumnes de Nivel Bàsic." },
+                                        { ref: "Decret 179/1993", categoria: "Escoles Música", texto: "L'ensenyament de la música ha de potenciar la pràctica col·lectiva des de l'inici." }
+                                    ],
+                                    esquema: [
+                                        "Suzuki: Escoltar -> Imitar -> Memoritzar -> Llegir partitura.",
+                                        "Rolland: Elasticitat, pes del braç dret sobre la corda, moviment del cos.",
+                                        "Avaluació Bàsica: Formativa i contínua basada en la motivació i el desenvolupament auditiu."
+                                    ]
+                                }
+                            },
+                            { 
+                                id: 302, numero: 6, codigo: 'OAME', badgeClass: 'bg-purple-500',
+                                titulo: "Programació Didàctica i Grau Professional de Violí", 
+                                descripcion: "Avaluació, repertori, afinació, canvis de posició, cop d'arc (spiccato, martelé) i vibrato.", 
+                                estado: "dominat",
+                                contenido: {
+                                    resumen: [
+                                        "En el **Grau Professional (alumnat individual)**, la programació didàctica de violí consolida la preparació tècnica i artística necessària per a la interpretació de repertori avançat.",
+                                        "**Cops d'Arc Avançats:**\n- **Martelé:** Cop d'arc de pressió i atac sec des de la corda.\n- **Spiccato:** Cops d'arc saltats on l'arc rebota naturalment al punt d'equilibri.\n- **Ricochet / Arpeggiato:** Rebot continuat de l'arc en tirant o empenyent.",
+                                        "**Canvis de Posició i Vibrato:** Introducció sistemàtica de la 3a, 2a, 4a i 5a posició mitjançant canvis de shift guiats per la nota de pas. Desenvolupament d'un vibrato d'antecurt i braç flexible.",
+                                        "**Repertori Tipus Grau Professional:** Concerts de Bach (A menor, Mi major), Vivaldi, Haydn, Mozart (N.1, 2, 3), Sonates de Händel i peces de concert de Kreisler, De Bériot o Sarasate."
+                                    ],
+                                    articulos: [
+                                        { ref: "Supòsit Pedagògic OAME", categoria: "Classe Individual", texto: "Classe individual de 20 minuts a un alumne de Grau Professional centrada en supòsits tècnics i d'interpretació." }
+                                    ],
+                                    esquema: [
+                                        "Mètodes Tècnics Fonamentals: Sevcik (Op. 1 i Op. 2), Schradieck, Kreutzer (42 Estudis), Dont (Op. 37 i 35).",
+                                        "Mètrica i Afinació: Desenvolupament de l'oïda harmònica i afinació temperada vs. expressiva (Pitàgores).",
+                                        "Avaluació GP: Treball individual, memòria musical, interpretació en públic."
+                                    ]
+                                }
+                            }
+                        ]
+                    }
+                ],
+
+                questionBank: [
+                    { id: 1, ley: 'LEY39', badgeClass: 'bg-amber-500', question: "Quin és el termini general interposició del Recurs d'Alçada contra un acte exprés segons la Llei 39/2015?", options: ["15 dies hàbils", "1 mes", "2 mesos", "3 mesos"], correct: 1, explanation: "Segons l'Art. 122.1 de la LPACAP, el termini per a la interposició del recurs d'alçada és d'un mes si l'acte és exprés." },
+                    { id: 2, ley: 'OAME', badgeClass: 'bg-purple-500', question: "Quin descompte s'aplica per cada resposta errònia en el Test de 60 preguntes de la 1a Prova de la convocatòria OAME Sant Cugat?", options: ["No descompten", "-0,33 punts (1/3)", "-0,25 punts (1/4)", "-0,50 punts (1/2)"], correct: 2, explanation: "Base 8.1.1: Les respostes errònies penalitzen amb 1/4 del valor d'una resposta correcta (-0,25 punts). Les respostes en blanc no descompten." },
+                    { id: 3, ley: 'LBRL', badgeClass: 'bg-blue-500', question: "A quin òrgan municipal correspon l'aprovació del Reglament Orgànic de l'Escola Municipal de Música segons la LBRL?", options: ["A l'Alcalde/ssa", "A la Junta de Govern Local", "Al Ple Municipal", "Al Consell Escolar del centre"], correct: 2, explanation: "Segons l'Art. 22.2.d de la Llei 7/1985 (LBRL), l'aprovació del reglament orgànic és competència indelegable del Ple Municipal." },
+                    { id: 4, ley: 'TREBEP', badgeClass: 'bg-emerald-500', question: "Quin és el termini de prescripció de les faltes molt greus segons el TRLEBEP?", options: ["1 any", "2 anys", "3 anys", "5 anys"], correct: 2, explanation: "Art. 97 del TREBEP: Les faltes molt greus prescriuen als 3 anys, les greus als 2 anys i les lleus als 6 mesos." },
+                    { id: 5, ley: 'CE', badgeClass: 'bg-red-500', question: "En quin article de la Constitució Espanyola de 1978 es garanteix el dret a la llibertat de càtedra docent?", options: ["Article 14", "Article 20.1.c", "Article 27", "Article 103"], correct: 1, explanation: "L'Article 20.1.c de la CE 1978 reconeix i protegeix expressament el dret a la llibertat de càtedra." },
+                    { id: 6, ley: 'OAME', badgeClass: 'bg-purple-500', question: "Amb quina antelació mínima s'han de presentar a la seu electrònica les partitures de la prova interpretativa de violí?", options: ["3 dies hàbils abans", "5 dies naturals abans", "10 dies abans de la prova", "El mateix dia de l'examen"], correct: 2, explanation: "Base 8.1.2: Les persones aspirants han d'aportar el programa i les partitures a la seu electrònica 10 dies abans de la realització de la prova." }
+                ],
+
+                flashcards: [
+                    { ley: 'LEY39', badgeClass: 'bg-amber-500', front: "Termini per interposar el Recurs d'Alçada (Acte Exprés)", back: "1 MES", detail: "Compta de data a data des de l'endemà de la notificació (Art. 122 Llei 39/2015).", ref: "Art. 122 LPACAP" },
+                    { ley: 'OAME', badgeClass: 'bg-purple-500', front: "Puntuació Mínima per superar la 2a Prova (Pedagògica + Violí)", back: "25 Punts (de 50p)", detail: "Cal sumar almenys 25 punts entre l'exercici interpretatiu i el pedagògic.", ref: "Base 8.1.2 DOGC" },
+                    { ley: 'TREBEP', badgeClass: 'bg-emerald-500', front: "Prescripció de les Faltes Greus de l'Empleat Públic", back: "2 ANYS", detail: "Molt greus: 3 anys. Greus: 2 anys. Lleus: 6 mesos.", ref: "Art. 97 TREBEP" },
+                    { ley: 'LBRL', badgeClass: 'bg-blue-500', front: "Òrgan competent per aprovar la plantilla de personal municipal", back: "EL PLE MUNICIPAL", detail: "Correspon al Ple l'aprovació de la plantilla i la RLT juntament amb el Pressupost.", ref: "Art. 22.2.i LBRL" }
+                ],
+
+                plazos: [],
+                trampas: [],
+                errores: [],
+
+                initApp() {
+                    const saved = localStorage.getItem('opos_music_canvas');
+                    if (saved) {
+                        try {
+                            const parsed = JSON.parse(saved);
+                            this.plazos = parsed.plazos || [];
+                            this.trampas = parsed.trampas || [];
+                            this.errores = parsed.errores || [];
+                            this.examDate = parsed.examDate || '2026-11-15';
+                        } catch(e) { this.loadDefaults(); }
+                    } else { this.loadDefaults(); }
+                    
+                    // Seleccionar el primer tema per defecte al lector
+                    if (this.temario.length > 0 && this.temario[0].temas.length > 0) {
+                        this.selectedTopic = this.temario[0].temas[0];
+                    }
+                    
+                    this.resetTest();
+                },
+
+                loadDefaults() {
+                    this.plazos = [
+                        { id: 1, ley: 'OAME', badgeClass: 'bg-purple-500', concepto: 'Inscripció de sol·licituds', cifra: '20 dies hàbils', art: 'Base 5.1 DOGC', mastered: true },
+                        { id: 2, ley: 'OAME', badgeClass: 'bg-purple-500', concepto: 'Impugnació del solucionari del Test', cifra: '5 dies naturals', art: 'Base 8.1.4 DOGC', mastered: false },
+                        { id: 3, ley: 'OAME', badgeClass: 'bg-purple-500', concepto: 'Aportació de partitures de violí', cifra: '10 dies abans', art: 'Base 8.1.2 DOGC', mastered: false },
+                        { id: 4, ley: 'LEY39', badgeClass: 'bg-amber-500', concepto: 'Recurs d\'Alçada (Acte exprés)', cifra: '1 Mes', art: 'Art. 122 LPACAP', mastered: true },
+                        { id: 5, ley: 'TREBEP', badgeClass: 'bg-emerald-500', concepto: 'Prescripció Faltes Molt Greus', cifra: '3 Anys', art: 'Art. 97 TREBEP', mastered: false }
+                    ];
+                    this.trampas = [
+                        { id: 1, ley: 'Bases OAME', titulo: 'Impugnació Solucionari Test', correcto: 'Són 5 dies NATURALS des de l\'endemà de la publicació.', trampa: 'Pensar que són dies hàbils com en la LPACAP general.', consejo: 'La base 8.1.4 especifica clarament dies NATURALS!' }
+                    ];
+                    this.errores = [
+                        { id: 1, pregunta: 'Descompte per resposta errònia en el test OAME?', solucion: '-0,25 punts (1/4 del valor d\'una resposta encertada).', articulo: 'Base 8.1.1 DOGC', racha: 1 }
+                    ];
+                    this.saveData();
+                },
+
+                saveData() {
+                    localStorage.setItem('opos_music_canvas', JSON.stringify({
+                        plazos: this.plazos,
+                        trampas: this.trampas,
+                        errores: this.errores,
+                        examDate: this.examDate
+                    }));
+                },
+
+                daysLeftText() {
+                    const diff = new Date(this.examDate) - new Date();
+                    const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+                    return days > 0 ? `Falten ${days} dies` : '¡Examen Avui!';
+                },
+
+                masteredPlazosCount() { return this.plazos.filter(p => p.mastered).length; },
+                filteredLeyes() { return this.filterLey === 'ALL' ? this.leyes : this.leyes.filter(l => l.codigo === this.filterLey); },
+                filteredPlazos() {
+                    return this.plazos.filter(p => {
+                        const matchesL = this.filterLey === 'ALL' || p.ley === this.filterLey;
+                        const q = this.searchQuery.toLowerCase();
+                        return matchesL && (!q || p.concepto.toLowerCase().includes(q) || p.cifra.toLowerCase().includes(q));
+                    });
+                },
+                filteredTrampas() { return this.trampas; },
+                filteredErrores() { return this.errores; },
+
+                // Filtre de Temari
+                filteredTemario() {
+                    if (!this.temarioSearch.trim()) return this.temario;
+                    const q = this.temarioSearch.toLowerCase();
+                    return this.temario.map(bloc => {
+                        const matchingTemas = bloc.temas.filter(t => 
+                            t.titulo.toLowerCase().includes(q) || 
+                            t.descripcion.toLowerCase().includes(q) ||
+                            t.numero.toString().includes(q)
+                        );
+                        return { ...bloc, temas: matchingTemas };
+                    }).filter(bloc => bloc.temas.length > 0);
+                },
+
+                openTopicReader(tema) {
+                    this.selectedTopic = tema;
+                    this.temarioView = 'reader';
+                },
+
+                toggleMastered(id) {
+                    const p = this.plazos.find(x => x.id === id);
+                    if (p) { p.mastered = !p.mastered; this.saveData(); }
+                },
+                incrementStreak(id, v) {
+                    const e = this.errores.find(x => x.id === id);
+                    if (e) { e.racha = v; this.saveData(); }
+                },
+                deleteError(id) {
+                    this.errores = this.errores.filter(x => x.id !== id);
+                    this.saveData();
+                },
+
+                // Test Logic
+                selectTestCategory(cat) {
+                    this.selectedTestCategory = cat;
+                    this.resetTest();
+                },
+                resetTest() {
+                    if (this.testTimerInterval) clearInterval(this.testTimerInterval);
+                    if (this.selectedTestCategory === 'ALL') {
+                        this.activeQuestions = [...this.questionBank];
+                    } else {
+                        this.activeQuestions = this.questionBank.filter(q => q.ley === this.selectedTestCategory);
+                    }
+                    this.currentQuestionIndex = 0;
+                    this.userAnswers = new Array(this.activeQuestions.length).fill(null);
+                    this.testSubmitted = false;
+                    this.testFinished = false;
+                    this.testScore = 0;
+                    this.testSeconds = 0;
+
+                    if (this.testMode === 'exam') {
+                        this.testTimerInterval = setInterval(() => { this.testSeconds++; }, 1000);
+                    }
+                },
+                selectAnswer(idx) {
+                    if (this.testFinished) return;
+                    this.userAnswers[this.currentQuestionIndex] = idx;
+                    if (this.testMode === 'practice') {
+                        this.testSubmitted = true;
+                    }
+                },
+                getOptionClass(idx) {
+                    const currentAnswer = this.userAnswers[this.currentQuestionIndex];
+                    const correctIdx = this.activeQuestions[this.currentQuestionIndex]?.correct;
+
+                    if (this.testMode === 'practice' && currentAnswer !== null) {
+                        if (idx === correctIdx) return 'bg-emerald-950/80 border-emerald-500 text-emerald-200';
+                        if (idx === currentAnswer) return 'bg-rose-950/80 border-rose-500 text-rose-200';
+                    }
+                    if (currentAnswer === idx) return 'bg-indigo-600/30 border-indigo-500 text-indigo-100 font-bold';
+                    return 'bg-slate-950 border-slate-800 text-slate-300 hover:border-slate-700';
+                },
+                finishTest() {
+                    if (this.testTimerInterval) clearInterval(this.testTimerInterval);
+                    let correct = 0;
+                    let wrong = 0;
+                    this.activeQuestions.forEach((q, i) => {
+                        if (this.userAnswers[i] === q.correct) correct++;
+                        else if (this.userAnswers[i] !== null) wrong++;
+                    });
+                    const rawScore = (correct - (wrong * 0.25)) / this.activeQuestions.length * 10;
+                    this.testScore = Math.max(0, rawScore);
+                    this.testFinished = true;
+                },
+                correctAnswersCount() {
+                    return this.activeQuestions.filter((q, i) => this.userAnswers[i] === q.correct).length;
+                },
+                wrongAnswersCount() {
+                    return this.activeQuestions.filter((q, i) => this.userAnswers[i] !== null && this.userAnswers[i] !== q.correct).length;
+                },
+                formatTime(sec) {
+                    const m = Math.floor(sec / 60);
+                    const s = sec % 60;
+                    return `${m}:${s < 10 ? '0' : ''}${s}`;
+                },
+                addCurrentToErrors() {
+                    const q = this.activeQuestions[this.currentQuestionIndex];
+                    if (!q) return;
+                    this.errores.unshift({
+                        id: Date.now(),
+                        pregunta: q.question,
+                        solucion: q.options[q.correct],
+                        articulo: q.explanation,
+                        racha: 0
+                    });
+                    this.saveData();
+                },
+
+                // Flashcards Navigation
+                prevCard() {
+                    this.cardFlipped = false;
+                    this.cardIndex = (this.cardIndex - 1 + this.flashcards.length) % this.flashcards.length;
+                },
+                nextCard() {
+                    this.cardFlipped = false;
+                    this.cardIndex = (this.cardIndex + 1) % this.flashcards.length;
+                },
+
+                // Progrés Temari
+                calculateSyllabusProgress() {
+                    let total = 0;
+                    let count = 0;
+                    this.temario.forEach(b => {
+                        b.temas.forEach(t => {
+                            total++;
+                            if (t.estado === 'dominat') count += 1;
+                            else if (t.estado === 'esquematitzat') count += 0.7;
+                            else if (t.estado === 'llegit') count += 0.3;
+                        });
+                    });
+                    return total ? Math.round((count / total) * 100) : 0;
+                },
+
+                // Assistent IA Gemini
+                sendQuickQuery(q) {
+                    this.aiInput = q;
+                    this.sendAiMessage();
+                },
+                async sendAiMessage() {
+                    if (!this.aiInput.trim() || this.aiLoading) return;
+                    const query = this.aiInput;
+                    this.chatMessages.push({ role: 'user', text: query });
+                    this.aiInput = '';
+                    this.aiLoading = true;
+
+                    this.$nextTick(() => {
+                        const el = document.getElementById('chatContainer');
+                        if (el) el.scrollTop = el.scrollHeight;
+                    });
+
+                    try {
+                        const systemPrompt = "Ets un preparador expert en oposicions de la Funció Pública a Catalunya i de Professorat de Música (Violí A1) per a l'OAME de Sant Cugat. Respon de forma concisa, precisa i en català correcte, citant els articles de la llei corresponents (CE, LPACAP 39/2015, LBRL, TREBEP o Bases de la convocatòria).";
+                        const apiKey = ""; 
+                        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+
+                        const response = await fetch(apiUrl, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                contents: [{ parts: [{ text: query }] }],
+                                systemInstruction: { parts: [{ text: systemPrompt }] }
+                            })
+                        });
+
+                        const result = await response.json();
+                        const answer = result.candidates?.[0]?.content?.parts?.[0]?.text || "Ho sento, no he pogut processar la resposta legal en aquest moment.";
+                        this.chatMessages.push({ role: 'assistant', text: answer });
+                    } catch (e) {
+                        this.chatMessages.push({ role: 'assistant', text: "Error de connexió amb el servei d'assistència. Revisa la teva connexió." });
+                    } finally {
+                        this.aiLoading = false;
+                        this.$nextTick(() => {
+                            const el = document.getElementById('chatContainer');
+                            if (el) el.scrollTop = el.scrollHeight;
+                        });
+                    }
+                },
+                formatMessageText(txt) {
+                    if (!txt) return '';
+                    return txt.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
+                },
+
+                openModal(type) {
+                    this.modalType = type;
+                    this.modalOpen = true;
+                },
+                saveModalItem() {
+                    if (this.modalType === 'plazo' && this.formPlazo.concepto) {
+                        const badgeMap = { 'CE':'bg-red-500', 'LBRL':'bg-blue-500', 'LEY39':'bg-amber-500', 'TREBEP':'bg-emerald-500', 'OAME':'bg-purple-500' };
+                        this.plazos.unshift({
+                            id: Date.now(),
+                            ley: this.formPlazo.ley,
+                            badgeClass: badgeMap[this.formPlazo.ley] || 'bg-slate-500',
+                            concepto: this.formPlazo.concepto,
+                            cifra: this.formPlazo.cifra,
+                            art: this.formPlazo.art || 'Ref. Examen',
+                            mastered: false
+                        });
+                    } else if (this.modalType === 'error' && this.formError.pregunta) {
+                        this.errores.unshift({
+                            id: Date.now(),
+                            pregunta: this.formError.pregunta,
+                            solucion: this.formError.solucion,
+                            articulo: this.formError.articulo || 'Ref. General',
+                            racha: 0
+                        });
+                    }
+                    this.saveData();
+                    this.modalOpen = false;
+                },
+                resetToDefault() { this.loadDefaults(); }
+            };
+        }
+    </script>
+</body>
+</html>
